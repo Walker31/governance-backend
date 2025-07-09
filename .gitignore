@@ -1,13 +1,37 @@
-# Node modules
+# ------------------------
+# Node.js
+# ------------------------
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+jspm_packages/
+.npm/
+.eslintcache
+
+# Parcel, Next.js, Nuxt.js, SvelteKit, Storybook, React build outputs
+.cache/
+.next/
+.nuxt/
+dist/
+.svelte-kit/
+.out/
+build/
+public/build/
+
+# dotenv files
+.env
+.env.*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Logs
 logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
-lerna-debug.log*
 
 # Runtime data
 pids/
@@ -15,57 +39,77 @@ pids/
 *.seed
 *.pid.lock
 
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm/
-
-# Optional eslint cache
-.eslintcache
-
-# dotenv environment files
-.env
-.env.*.local
-
-# Parcel-bundler cache
-.cache/
-
-# Next.js build output
-.next/
-
-# Nuxt.js build / generate output
-.nuxt/
-dist/
-
-# SvelteKit build output
-.svelte-kit/
-
-# Storybook build output
-.out/
-
-# Build output
-build/
-public/build/
-
-# Coverage directory used by tools like istanbul
-coverage/
-
-# Temporary folders
+# Temporary files
 tmp/
 temp/
 
-# System files
-.DS_Store
-Thumbs.db
+# ------------------------
+# Python (in Agent-RakFort/)
+# ------------------------
+Agent-RakFort/__pycache__/
+Agent-RakFort/*.py[cod]
+Agent-RakFort/*$py.class
+Agent-RakFort/*.so
 
-# IDEs and editors
+# Virtual environments
+Agent-RakFort/.venv/
+Agent-RakFort/venv/
+Agent-RakFort/env/
+Agent-RakFort/ENV/
+
+# Python environment variables
+Agent-RakFort/.env
+Agent-RakFort/.env.*
+
+# Python packaging
+Agent-RakFort/build/
+Agent-RakFort/develop-eggs/
+Agent-RakFort/downloads/
+Agent-RakFort/eggs/
+Agent-RakFort/.eggs/
+Agent-RakFort/lib/
+Agent-RakFort/lib64/
+Agent-RakFort/parts/
+Agent-RakFort/sdist/
+Agent-RakFort/var/
+Agent-RakFort/wheels/
+Agent-RakFort/*.egg-info/
+Agent-RakFort/.installed.cfg
+Agent-RakFort/*.egg
+
+# PyInstaller
+Agent-RakFort/*.manifest
+Agent-RakFort/*.spec
+
+# Coverage and test outputs
+Agent-RakFort/.coverage
+Agent-RakFort/.coverage.*
+Agent-RakFort/.cache
+Agent-RakFort/nosetests.xml
+Agent-RakFort/coverage.xml
+Agent-RakFort/*,cover
+Agent-RakFort/.pytest_cache/
+Agent-RakFort/htmlcov/
+
+# Databases
+Agent-RakFort/*.sqlite3
+Agent-RakFort/*.db
+Agent-RakFort/saved_sessions/
+
+# ------------------------
+# Editor / IDE configs
+# ------------------------
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 
-# TypeScript cache
-*.tsbuildinfo
+# ------------------------
+# OS-specific files
+# ------------------------
+.DS_Store
+Thumbs.db
