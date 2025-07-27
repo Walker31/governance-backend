@@ -1,0 +1,42 @@
+# Node.js dependencies
+node_modules/
+package-lock.json
+
+# Python virtual environments
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment variables and config
+.env
+.env.*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Excel and data files (if not needed in repo)
+*.xlsx
+
+# Saved sessions or runtime data
+Agent-RakFort/saved_sessions/
+Agent-RakFort/*.pyc
+
+# Shell scripts output
+*.sh
+
+# Ignore all compiled Python files in agents and subfolders
+Agent-RakFort/agents/**/*.pyc
+Agent-RakFort/agents/**/__pycache__/
+
+# Ignore all compiled Python files in waste subfolder
+Agent-RakFort/agents/waste/**/*.pyc
+Agent-RakFort/agents/waste/**/__pycache__/ 
