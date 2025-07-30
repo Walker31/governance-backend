@@ -4,6 +4,7 @@ import connectDB from "./config.js";
 import authRouter from "./routes/auth.js";
 import templatesRouter from "./routes/templates.js";
 import templateResponsesRouter from "./routes/templateResponses.js";
+import riskMatrixResultsRouter from "./routes/riskMatrixResults.js";
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use('/auth', authRouter);
 app.use('/templates', templatesRouter);
 app.use('/template-responses', templateResponsesRouter);
+app.use('/risk-matrix-results', riskMatrixResultsRouter);
 
 // Health check
 app.get('/', (req, res) => {
