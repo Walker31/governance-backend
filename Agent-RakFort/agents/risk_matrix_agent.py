@@ -1,8 +1,6 @@
 # agents/risk_matrix_agent.py
 import os
 import openai
-import requests
-import json
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from .utils import RISK_LIST, BASE_SEVERITY, MITIGATION, TARGET_DATE
@@ -60,42 +58,11 @@ Prefix your response with [RiskMatrixAgent].
     )
 
     table = resp.choices[0].message.content.strip()
+    print(resp)
+    print(table)
     
-    # Store result in database if backend URL is configured
+    # Don't attempt to store in database - let the calling service handle it
     stored_in_db = False
-    backend_url = os.getenv("BACKEND_URL", "http://localhost:3001")
-    
-    try:
-        # Prepare data for database storage
-        risk_data = {
-            "projectId": project_id,
-            "sessionId": session_id,
-            "summary": summary,
-            "markdownTable": table,
-            "riskData": {
-                "risk_list": RISK_LIST,
-                "base_severity": BASE_SEVERITY,
-                "mitigation": MITIGATION,
-                "target_date": TARGET_DATE
-            }
-        }
-        
-        # Make request to backend API
-        response = requests.post(
-            f"{backend_url}/risk-matrix-results",
-            json=risk_data,
-            headers={"Content-Type": "application/json"},
-            timeout=10
-        )
-        
-        if response.status_code == 201:
-            stored_in_db = True
-            print(f"Risk matrix result stored in database for session {session_id}")
-        else:
-            print(f"Failed to store in database: {response.status_code} - {response.text}")
-            
-    except Exception as e:
-        print(f"Error storing risk matrix result in database: {e}")
     
     return RiskOut(
         markdown_table=table,

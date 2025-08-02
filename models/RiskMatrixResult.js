@@ -2,14 +2,12 @@ import mongoose from 'mongoose';
 
 const riskMatrixResultSchema = new mongoose.Schema({
   projectId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Project',
-    required: true
+    type: String,
+    required: false // Make it optional for now
   },
   sessionId: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
   summary: {
     type: String,
