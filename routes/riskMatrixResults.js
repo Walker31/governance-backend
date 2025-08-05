@@ -28,7 +28,8 @@ router.get('/', authenticateToken, async (req, res) => {
     if (search) {
       query.$or = [
         { summary: { $regex: search, $options: 'i' } },
-        { sessionId: { $regex: search, $options: 'i' } }
+        { sessionId: { $regex: search, $options: 'i' } },
+        { riskAssessmentId: { $regex: search, $options: 'i' } }
       ];
     }
     

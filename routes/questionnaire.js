@@ -54,6 +54,7 @@ router.post('/process', authenticateToken, async (req, res) => {
     
     const createdBy = req.user._id;
     const sessionId = nanoid(); // Generate unique session ID
+    const riskAssessmentId = await RiskMatrixResult.generateRiskAssessmentId(); // Generate meaningful ID
     
     // Validate required fields
     if (!questionnaireResponses) {
@@ -98,6 +99,7 @@ router.post('/process', authenticateToken, async (req, res) => {
         
         // Create a temporary project document or use empty string for projectId
         const riskMatrixResult = new RiskMatrixResult({
+          riskAssessmentId,
           projectId: projectId || '', // Use provided projectId or empty string
           sessionId,
           summary,
@@ -112,6 +114,7 @@ router.post('/process', authenticateToken, async (req, res) => {
         res.status(201).json({
           message: 'Questionnaire processed successfully',
           sessionId,
+          riskAssessmentId,
           riskMatrixResult: savedResult
         });
       } else {
@@ -119,6 +122,7 @@ router.post('/process', authenticateToken, async (req, res) => {
         res.status(201).json({
           message: 'Questionnaire processed successfully',
           sessionId,
+          riskAssessmentId,
           stored_in_db: true
         });
       }
@@ -143,6 +147,7 @@ router.post('/process', authenticateToken, async (req, res) => {
       
       // Create a temporary project document or use empty string for projectId
       const riskMatrixResult = new RiskMatrixResult({
+        riskAssessmentId,
         projectId: projectId || '', // Use provided projectId or empty string
         sessionId,
         summary,
@@ -157,6 +162,7 @@ router.post('/process', authenticateToken, async (req, res) => {
       res.status(201).json({
         message: 'Questionnaire processed successfully (fallback mode)',
         sessionId,
+        riskAssessmentId,
         riskMatrixResult: savedResult
       });
     }

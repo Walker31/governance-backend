@@ -80,7 +80,7 @@ Backend/
 3. Create `.env` file:
    ```env
    PORT=3000
-   MONGODB_URI=mongodb://localhost:27017/governance_ai
+   MONGODB_URI=mongodb://localhost:27017/?retryWrites=true&w=majority&appName=Governance-AI
    JWT_SECRET=your_jwt_secret_key_here
    NODE_ENV=development
    ```

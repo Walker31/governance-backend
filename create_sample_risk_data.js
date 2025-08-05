@@ -5,7 +5,7 @@ import User from './models/User.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/governance_db';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/?retryWrites=true&w=majority&appName=Governance-AI';
 
 const API_BASE_URL = 'http://localhost:3001';
 

@@ -42,6 +42,17 @@ const templateSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  templateType: {
+    type: String,
+    required: true,
+    enum: [
+      'AI System',
+      'Cybersecurity Management System', 
+      'Third-party AI System',
+      'Third-party Cybersecurity System'
+    ],
+    default: 'AI System'
+  },
   questions: [questionSchema],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,

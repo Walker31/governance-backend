@@ -3,58 +3,116 @@ import Template from './models/Template.js';
 
 const sampleTemplates = [
   {
-    name: "AI Project Assessment",
-    description: "Comprehensive assessment for new AI projects",
+    name: "AI System Assessment",
+    description: "Comprehensive assessment for AI systems including regulatory compliance and risk management",
+    templateType: "AI System",
     questions: [
       {
-        questionText: "What is the primary objective of this AI project?",
+        questionText: "What is the primary purpose of the AI system?",
         responseType: "text",
         isRequired: true,
         questionOrder: 1
       },
       {
-        questionText: "What is the estimated budget for this project?",
-        responseType: "numeric",
+        questionText: "Is the AI system considered general-purpose (e.g., GenAI, LLMs)?",
+        responseType: "boolean",
         isRequired: true,
         questionOrder: 2
       },
       {
-        questionText: "Which departments will be involved?",
-        responseType: "msq",
+        questionText: "What type of learning model is used?",
+        responseType: "mcq",
         isRequired: true,
         questionOrder: 3,
         options: [
-          { optionText: "IT", optionOrder: 1 },
-          { optionText: "Legal", optionOrder: 2 },
-          { optionText: "HR", optionOrder: 3 },
-          { optionText: "Finance", optionOrder: 4 },
-          { optionText: "Operations", optionOrder: 5 },
-          { optionText: "Marketing", optionOrder: 6 }
+          { optionText: "Supervised Learning", optionOrder: 1 },
+          { optionText: "Unsupervised Learning", optionOrder: 2 },
+          { optionText: "Reinforcement Learning", optionOrder: 3 },
+          { optionText: "Transfer Learning", optionOrder: 4 },
+          { optionText: "Deep Learning", optionOrder: 5 },
+          { optionText: "Other", optionOrder: 6 }
         ]
       },
       {
-        questionText: "Does this project involve external vendors?",
-        responseType: "boolean",
+        questionText: "From which regions or jurisdictions will data be sourced or processed?",
+        responseType: "text",
         isRequired: true,
         questionOrder: 4
       },
       {
-        questionText: "What is the expected timeline for completion?",
+        questionText: "Will the system make autonomous decisions or provide recommendations?",
         responseType: "mcq",
         isRequired: true,
         questionOrder: 5,
         options: [
-          { optionText: "1-3 months", optionOrder: 1 },
-          { optionText: "3-6 months", optionOrder: 2 },
-          { optionText: "6-12 months", optionOrder: 3 },
-          { optionText: "12+ months", optionOrder: 4 }
+          { optionText: "Autonomous decisions", optionOrder: 1 },
+          { optionText: "Provide recommendations only", optionOrder: 2 },
+          { optionText: "Both autonomous decisions and recommendations", optionOrder: 3 },
+          { optionText: "Neither", optionOrder: 4 }
         ]
+      },
+      {
+        questionText: "Has a regulatory impact assessment been conducted?",
+        responseType: "text",
+        isRequired: true,
+        questionOrder: 6
+      },
+      {
+        questionText: "Is there human oversight of the system's outputs?",
+        responseType: "boolean",
+        isRequired: true,
+        questionOrder: 7
+      },
+      {
+        questionText: "What risk mitigation controls are in place (e.g., bias detection, anomaly alerts)?",
+        responseType: "text",
+        isRequired: true,
+        questionOrder: 8
+      },
+      {
+        questionText: "Are there fallback or escalation procedures in case of system failure or unexpected behaviour?",
+        responseType: "text",
+        isRequired: true,
+        questionOrder: 9
+      },
+      {
+        questionText: "Which groups or individuals are affected by this system?",
+        responseType: "msq",
+        isRequired: true,
+        questionOrder: 10,
+        options: [
+          { optionText: "Employees", optionOrder: 1 },
+          { optionText: "Customers", optionOrder: 2 },
+          { optionText: "Vendors", optionOrder: 3 },
+          { optionText: "Vulnerable populations", optionOrder: 4 },
+          { optionText: "General public", optionOrder: 5 },
+          { optionText: "Other", optionOrder: 6 }
+        ]
+      },
+      {
+        questionText: "Has a stakeholder impact assessment been conducted?",
+        responseType: "boolean",
+        isRequired: true,
+        questionOrder: 11
+      },
+      {
+        questionText: "Are there transparency mechanisms for affected individuals (e.g., opt-out, explanation of decisions)?",
+        responseType: "text",
+        isRequired: true,
+        questionOrder: 12
+      },
+      {
+        questionText: "Will the system process personal, sensitive, or biometric data?",
+        responseType: "boolean",
+        isRequired: true,
+        questionOrder: 13
       }
     ]
   },
   {
     name: "Data Privacy Compliance",
     description: "Template for data privacy and compliance assessments",
+    templateType: "Cybersecurity Management System",
     questions: [
       {
         questionText: "What types of personal data will be processed?",
@@ -93,6 +151,7 @@ const sampleTemplates = [
   {
     name: "Risk Assessment",
     description: "General risk assessment template",
+    templateType: "Third-party AI System",
     questions: [
       {
         questionText: "What is the risk level of this project?",
@@ -117,6 +176,50 @@ const sampleTemplates = [
         responseType: "boolean",
         isRequired: true,
         questionOrder: 3
+      }
+    ]
+  },
+  {
+    name: "Third-party Security Assessment",
+    description: "Assessment template for third-party cybersecurity systems",
+    templateType: "Third-party Cybersecurity System",
+    questions: [
+      {
+        questionText: "What type of third-party cybersecurity system is being assessed?",
+        responseType: "mcq",
+        isRequired: true,
+        questionOrder: 1,
+        options: [
+          { optionText: "Firewall", optionOrder: 1 },
+          { optionText: "Intrusion Detection System", optionOrder: 2 },
+          { optionText: "Vulnerability Scanner", optionOrder: 3 },
+          { optionText: "Security Information and Event Management", optionOrder: 4 },
+          { optionText: "Other", optionOrder: 5 }
+        ]
+      },
+      {
+        questionText: "What is the vendor name?",
+        responseType: "text",
+        isRequired: true,
+        questionOrder: 2
+      },
+      {
+        questionText: "What is the contract value?",
+        responseType: "numeric",
+        isRequired: true,
+        questionOrder: 3
+      },
+      {
+        questionText: "Does the vendor have SOC 2 Type II certification?",
+        responseType: "boolean",
+        isRequired: true,
+        questionOrder: 4
+      },
+      {
+        questionText: "Describe the security controls implemented",
+        responseType: "text",
+        isRequired: false,
+        questionOrder: 5
       }
     ]
   }

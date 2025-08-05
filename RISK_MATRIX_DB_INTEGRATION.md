@@ -85,7 +85,7 @@ curl "http://localhost:3001/risk-matrix-results/project/507f1f77bcf86cd799439011
 
 ### Backend (.env)
 ```
-MONGODB_URI=mongodb://localhost:27017/governance_db
+MONGODB_URI=mongodb://localhost:27017/?retryWrites=true&w=majority&appName=Governance-AI
 JWT_SECRET=your-jwt-secret
 ```
 

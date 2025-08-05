@@ -4,6 +4,40 @@ import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Manual seed endpoint (for debugging - remove in production)
+router.post('/seed', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    // Import seed data
+    const { default: seedData } = await import('../seedData.js');
+    await seedData();
+    
+    const count = await Template.countDocuments({ isActive: true });
+    res.json({ 
+      message: 'Templates seeded successfully', 
+      count 
+    });
+  } catch (error) {
+    console.error('Error seeding templates:', error);
+    res.status(500).json({ error: 'Failed to seed templates' });
+  }
+});
+
+// Test endpoint to check template count (for debugging)
+router.get('/test/count', authenticateToken, async (req, res) => {
+  try {
+    const count = await Template.countDocuments({ isActive: true });
+    const templates = await Template.find({ isActive: true }).select('name templateType');
+    
+    res.json({
+      count,
+      templates: templates.map(t => ({ name: t.name, templateType: t.templateType }))
+    });
+  } catch (error) {
+    console.error('Error checking template count:', error);
+    res.status(500).json({ error: 'Failed to check template count' });
+  }
+});
+
 // Get all templates (authenticated users)
 router.get('/', authenticateToken, async (req, res) => {
   try {
@@ -16,17 +50,21 @@ router.get('/', authenticateToken, async (req, res) => {
       id: template._id,
       name: template.name,
       description: template.description,
+      templateType: template.templateType,
       questions: template.questions.map(q => ({
         id: q._id,
-        question: q.questionText,
+        question: q.questionText, // Keep both for compatibility
+        questionText: q.questionText,
         responseType: q.responseType,
         required: q.isRequired,
+        isRequired: q.isRequired,
         options: q.options ? q.options.map(opt => opt.optionText) : []
       })),
       createdAt: template.createdAt,
       updatedAt: template.updatedAt
     }));
     
+    console.log('Transformed templates:', transformedTemplates);
     res.json(transformedTemplates);
   } catch (error) {
     console.error('Error fetching templates:', error);
@@ -50,11 +88,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
       id: template._id,
       name: template.name,
       description: template.description,
+      templateType: template.templateType,
       questions: template.questions.map(q => ({
         id: q._id,
-        question: q.questionText,
+        question: q.questionText, // Keep both for compatibility
+        questionText: q.questionText,
         responseType: q.responseType,
         required: q.isRequired,
+        isRequired: q.isRequired,
         options: q.options ? q.options.map(opt => opt.optionText) : []
       })),
       createdAt: template.createdAt,
@@ -71,7 +112,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create new template (admin only)
 router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { name, description, questions } = req.body;
+    const { name, description, templateType, questions } = req.body;
     const createdBy = req.user._id;
     
     // Transform questions to match MongoDB schema
@@ -89,6 +130,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
     const template = new Template({
       name,
       description,
+      templateType,
       questions: transformedQuestions,
       createdBy
     });
@@ -100,6 +142,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
       id: savedTemplate._id,
       name: savedTemplate.name,
       description: savedTemplate.description,
+      templateType: savedTemplate.templateType,
       questions: savedTemplate.questions.map(q => ({
         id: q._id,
         question: q.questionText,
@@ -122,7 +165,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
 router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, questions } = req.body;
+    const { name, description, templateType, questions } = req.body;
     
     // Transform questions to match MongoDB schema
     const transformedQuestions = questions.map((question, index) => ({
@@ -141,6 +184,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
       {
         name,
         description,
+        templateType,
         questions: transformedQuestions,
         updatedAt: new Date()
       },

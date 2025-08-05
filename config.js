@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/governance_db';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/?retryWrites=true&w=majority&appName=Governance-AI';
 
 const connectDB = async () => {
   try {
