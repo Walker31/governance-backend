@@ -1,6 +1,7 @@
 import express from 'express';
-import RiskMatrixResult from '../models/RiskMatrixResult.js';
+import RiskMatrixRisk from '../models/RiskMatrixRisk.js';
 import Question from '../models/Question.js';
+import RiskMatrixService from '../services/riskMatrixService.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 import { nanoid } from 'nanoid';
 import axios from 'axios';
@@ -54,19 +55,12 @@ router.post('/process', authenticateToken, async (req, res) => {
     
     const createdBy = req.user._id;
     const sessionId = nanoid(); // Generate unique session ID
-    const riskAssessmentId = await RiskMatrixResult.generateRiskAssessmentId(); // Generate meaningful ID
     
     // Validate required fields
     if (!questionnaireResponses) {
       return res.status(400).json({ 
         error: 'Missing required field: questionnaireResponses' 
       });
-    }
-    
-    // Check if session already exists
-    const existingResult = await RiskMatrixResult.findOne({ sessionId });
-    if (existingResult) {
-      return res.status(400).json({ error: 'Session already exists' });
     }
     
     // Call AI agent to generate risk analysis
@@ -85,85 +79,66 @@ router.post('/process', authenticateToken, async (req, res) => {
         timeout: 30000 // 30 second timeout
       });
       
-      const { markdown_table: markdownTable, stored_in_db } = agentResponse.data;
+      const { parsed_risks } = agentResponse.data;
       
-      // If the agent didn't store in DB, we need to store it ourselves
-      if (!stored_in_db) {
-        const riskData = {
-          useCaseType,
-          questionnaireResponses,
-          analysisDate: new Date(),
-          riskLevel: 'Medium', // This could be extracted from the markdown table
-          categories: ['Technical', 'Compliance', 'Operational']
-        };
-        
-        // Create a temporary project document or use empty string for projectId
-        const riskMatrixResult = new RiskMatrixResult({
-          riskAssessmentId,
-          projectId: projectId || '', // Use provided projectId or empty string
+      // Store individual risks in database
+      if (parsed_risks && parsed_risks.length > 0) {
+        const result = await RiskMatrixService.storeRisks({
+          projectId,
           sessionId,
-          summary,
-          markdownTable,
-          riskData,
-          createdBy
-        });
-        
-        const savedResult = await riskMatrixResult.save();
-        await savedResult.populate('createdBy', 'name surname email');
+          parsedRisks
+        }, createdBy);
         
         res.status(201).json({
           message: 'Questionnaire processed successfully',
           sessionId,
-          riskAssessmentId,
-          riskMatrixResult: savedResult
+          riskAssessmentId: result.riskAssessmentId,
+          risksCount: result.risksCount,
+          risks: result.risks
         });
       } else {
-        // Agent already stored in DB, just return success
         res.status(201).json({
-          message: 'Questionnaire processed successfully',
+          message: 'Questionnaire processed successfully (no risks identified)',
           sessionId,
-          riskAssessmentId,
-          stored_in_db: true
+          risksCount: 0
         });
       }
       
     } catch (error) {
       console.error('Error calling AI agent:', error);
       
-      // Fallback to placeholder response if agent fails
-      const summary = `Risk analysis generated for ${useCaseType} AI system based on questionnaire responses.`;
-      const markdownTable = `| Risk Level | Category | Description | Mitigation |
-|------------|----------|-------------|------------|
-| Medium | Technical | AI system complexity | Regular monitoring |
-| Low | Compliance | Regulatory requirements | Documentation updates |`;
+      // Fallback to placeholder risks if agent fails
+      const fallbackRisks = [
+        {
+          risk_name: "AI System Complexity",
+          risk_owner: "Data Engineering Team",
+          severity: 3,
+          justification: "Medium risk due to system complexity",
+          mitigation: "Regular monitoring and testing",
+          target_date: "2024-03-15"
+        },
+        {
+          risk_name: "Regulatory Compliance",
+          risk_owner: "Compliance Team",
+          severity: 2,
+          justification: "Low risk with proper documentation",
+          mitigation: "Documentation updates and training",
+          target_date: "2024-02-28"
+        }
+      ];
       
-      const riskData = {
-        useCaseType,
-        questionnaireResponses,
-        analysisDate: new Date(),
-        riskLevel: 'Medium',
-        categories: ['Technical', 'Compliance', 'Operational']
-      };
-      
-      // Create a temporary project document or use empty string for projectId
-      const riskMatrixResult = new RiskMatrixResult({
-        riskAssessmentId,
-        projectId: projectId || '', // Use provided projectId or empty string
+      const result = await RiskMatrixService.storeRisks({
+        projectId,
         sessionId,
-        summary,
-        markdownTable,
-        riskData,
-        createdBy
-      });
-      
-      const savedResult = await riskMatrixResult.save();
-      await savedResult.populate('createdBy', 'name surname email');
+        parsedRisks: fallbackRisks
+      }, createdBy);
       
       res.status(201).json({
         message: 'Questionnaire processed successfully (fallback mode)',
         sessionId,
-        riskAssessmentId,
-        riskMatrixResult: savedResult
+        riskAssessmentId: result.riskAssessmentId,
+        risksCount: result.risksCount,
+        risks: result.risks
       });
     }
     
@@ -178,18 +153,28 @@ router.get('/status/:sessionId', authenticateToken, async (req, res) => {
   try {
     const { sessionId } = req.params;
     
-    const result = await RiskMatrixResult.findOne({ 
+    const risks = await RiskMatrixRisk.find({ 
       sessionId, 
       isActive: true 
     })
     .populate('createdBy', 'name surname email')
+    .sort({ severity: -1, createdAt: -1 })
     .lean();
     
-    if (!result) {
+    if (risks.length === 0) {
       return res.status(404).json({ error: 'Questionnaire processing result not found' });
     }
     
-    res.json(result);
+    // Group risks by assessment
+    const riskAssessmentId = risks[0]?.riskAssessmentId;
+    const groupedRisks = risks.filter(risk => risk.riskAssessmentId === riskAssessmentId);
+    
+    res.json({
+      sessionId,
+      riskAssessmentId,
+      risksCount: groupedRisks.length,
+      risks: groupedRisks
+    });
   } catch (error) {
     console.error('Error fetching questionnaire status:', error);
     res.status(500).json({ error: 'Failed to fetch questionnaire status' });

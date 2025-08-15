@@ -16,9 +16,15 @@ const userSchema = new mongoose.Schema({
     trim: true,
     match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
   },
+  googleId: {
+    type: String,
+    default: null
+  },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: function () {
+      return !this.googleId; // Password only required if not using Google OAuth
+    },
     minlength: [6, 'Password must be at least 6 characters long']
   },
   role: {
@@ -28,8 +34,8 @@ const userSchema = new mongoose.Schema({
   },
   avatar: {
     type: String,
-    default: function() {
-      return `https://ui-avatars.com/api/?name=${this.name}&background=random`;
+    default: function () {
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(this.name)}&background=random`;
     }
   },
   isActive: {
@@ -45,9 +51,9 @@ const userSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password') || !this.password) return next();
+
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
@@ -57,13 +63,13 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Method to compare password
-userSchema.methods.comparePassword = async function(candidatePassword) {
+// Compare passwords
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Method to get user without password
-userSchema.methods.toJSON = function() {
+// Remove password from JSON output
+userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;
   return user;
@@ -71,4 +77,4 @@ userSchema.methods.toJSON = function() {
 
 const User = mongoose.model('User', userSchema);
 
-export default User; 
+export default User;

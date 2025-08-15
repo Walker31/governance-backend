@@ -5,8 +5,11 @@ import { requestLogger, errorLogger } from "./middleware/logger.js";
 import authRouter from "./routes/auth.js";
 import templatesRouter from "./routes/templates.js";
 import templateResponsesRouter from "./routes/templateResponses.js";
-import riskMatrixResultsRouter from "./routes/riskMatrixResults.js";
+import riskMatrixRisksRouter from "./routes/riskMatrixRisks.js";
 import questionnaireRouter from "./routes/questionnaire.js";
+import projectRouter from './routes/projects.js';
+import elementRouter from './routes/dataElements.js';
+import thirdPartyRouter from './routes/thirdparty.js';
 
 const app = express();
 
@@ -22,8 +25,11 @@ app.use(requestLogger);
 app.use('/auth', authRouter);
 app.use('/templates', templatesRouter);
 app.use('/template-responses', templateResponsesRouter);
-app.use('/risk-matrix-results', riskMatrixResultsRouter);
+app.use('/risk-matrix-risks', riskMatrixRisksRouter);
 app.use('/questionnaire', questionnaireRouter);
+app.use('/projects', projectRouter);
+app.use('/elements', elementRouter);
+app.use('/thirdparty', thirdPartyRouter);
 
 // Health check
 app.get('/', (req, res) => {

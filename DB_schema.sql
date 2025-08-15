@@ -383,3 +383,27 @@ CREATE TABLE trainingregistar (
   createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
   updatedAt TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- Risk Matrix Risks table to store individual risks from risk matrix agent
+CREATE TABLE risk_matrix_risks (
+  id SERIAL PRIMARY KEY,
+  risk_assessment_id VARCHAR(255) NOT NULL,
+  session_id VARCHAR(255) NOT NULL,
+  project_id VARCHAR(255),
+  risk_name TEXT NOT NULL,
+  risk_owner VARCHAR(255) NOT NULL,
+  severity INTEGER NOT NULL CHECK (severity >= 1 AND severity <= 5),
+  justification TEXT,
+  mitigation TEXT,
+  target_date DATE,
+  created_by INTEGER REFERENCES users(id),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  is_active BOOLEAN DEFAULT TRUE
+);
+
+-- Indexes for risk_matrix_risks table
+CREATE INDEX idx_risk_matrix_risks_assessment_id ON risk_matrix_risks(risk_assessment_id);
+CREATE INDEX idx_risk_matrix_risks_session_id ON risk_matrix_risks(session_id);
+CREATE INDEX idx_risk_matrix_risks_project_id ON risk_matrix_risks(project_id);
+CREATE INDEX idx_risk_matrix_risks_created_at ON risk_matrix_risks(created_at);

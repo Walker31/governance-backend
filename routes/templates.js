@@ -25,26 +25,12 @@ router.post('/seed', authenticateToken, requireAdmin, async (req, res) => {
 // Test endpoint to check template count (for debugging)
 router.get('/test/count', authenticateToken, async (req, res) => {
   try {
-    console.log('=== TEMPLATE COUNT TEST ===');
     const count = await Template.countDocuments({ isActive: true });
-    console.log('Active templates count:', count);
+    const templates = await Template.find({ isActive: true }).select('name templateType');
     
-    const allTemplates = await Template.find({ isActive: true }).lean();
-    console.log('Template details:', allTemplates.map(t => ({
-      id: t._id,
-      name: t.name,
-      templateType: t.templateType,
-      questionsCount: t.questions ? t.questions.length : 0
-    })));
-    
-    res.json({ 
+    res.json({
       count,
-      templates: allTemplates.map(t => ({
-        id: t._id,
-        name: t.name,
-        templateType: t.templateType,
-        questionsCount: t.questions ? t.questions.length : 0
-      }))
+      templates: templates.map(t => ({ name: t.name, templateType: t.templateType }))
     });
   } catch (error) {
     console.error('Error checking template count:', error);
@@ -52,56 +38,35 @@ router.get('/test/count', authenticateToken, async (req, res) => {
   }
 });
 
-
-
 // Get all templates (authenticated users)
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    console.log('=== BACKEND TEMPLATE FETCH DEBUG ===');
-    console.log('User requesting templates:', req.user._id);
-    
     const templates = await Template.find({ isActive: true })
       .sort({ createdAt: -1 })
       .lean();
     
-    console.log('Raw templates from database:', templates.length);
-    console.log('Template types found:', templates.map(t => t.templateType));
-    
     // Transform the data to match frontend expectations
-    const transformedTemplates = templates.map(template => {
-      console.log('Transforming template:', {
-        id: template._id,
-        name: template.name,
-        templateType: template.templateType,
-        questionsCount: template.questions ? template.questions.length : 0
-      });
-      
-      return {
-        id: template._id,
-        name: template.name,
-        description: template.description,
-        templateType: template.templateType,
-        questions: template.questions.map(q => ({
-          id: q._id,
-          question: q.questionText, // Keep both for compatibility
-          questionText: q.questionText,
-          responseType: q.responseType,
-          required: q.isRequired,
-          isRequired: q.isRequired,
-          options: q.options ? q.options.map(opt => opt.optionText) : []
-        })),
-        createdAt: template.createdAt,
-        updatedAt: template.updatedAt
-      };
-    });
+    const transformedTemplates = templates.map(template => ({
+      id: template._id,
+      name: template.name,
+      description: template.description,
+      templateType: template.templateType,
+      questions: template.questions.map(q => ({
+        id: q._id,
+        question: q.questionText, // Keep both for compatibility
+        questionText: q.questionText,
+        responseType: q.responseType,
+        required: q.isRequired,
+        isRequired: q.isRequired,
+        options: q.options ? q.options.map(opt => opt.optionText) : []
+      })),
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt
+    }));
     
-    console.log('Transformed templates count:', transformedTemplates.length);
-    console.log('Transformed templates:', transformedTemplates);
     res.json(transformedTemplates);
   } catch (error) {
-    console.error('=== BACKEND TEMPLATE FETCH ERROR ===');
     console.error('Error fetching templates:', error);
-    console.error('Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to fetch templates' });
   }
 });

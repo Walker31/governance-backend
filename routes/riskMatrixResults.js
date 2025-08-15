@@ -1,10 +1,11 @@
 import express from 'express';
-import RiskMatrixResult from '../models/RiskMatrixResult.js';
+import RiskMatrixRisk from '../models/RiskMatrixRisk.js';
+import RiskMatrixService from '../services/riskMatrixService.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get all risk matrix results (authenticated users)
+// Get all risks with pagination and filtering (authenticated users)
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { 
@@ -13,21 +14,26 @@ router.get('/', authenticateToken, async (req, res) => {
       sortBy = 'createdAt', 
       sortOrder = 'desc',
       search = '',
-      projectId = ''
+      projectId = '',
+      sessionId = ''
     } = req.query;
     
     // Build query
     const query = { isActive: true };
     
-    // Add project filter if provided
+    // Add filters
     if (projectId) {
       query.projectId = projectId;
+    }
+    
+    if (sessionId) {
+      query.sessionId = sessionId;
     }
     
     // Add search filter if provided
     if (search) {
       query.$or = [
-        { summary: { $regex: search, $options: 'i' } },
+        { riskName: { $regex: search, $options: 'i' } },
         { sessionId: { $regex: search, $options: 'i' } },
         { riskAssessmentId: { $regex: search, $options: 'i' } }
       ];
@@ -41,7 +47,7 @@ router.get('/', authenticateToken, async (req, res) => {
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
     
     // Get results with pagination
-    const results = await RiskMatrixResult.find(query)
+    const risks = await RiskMatrixRisk.find(query)
       .populate('createdBy', 'name surname email')
       .sort(sort)
       .skip(skip)
@@ -49,10 +55,10 @@ router.get('/', authenticateToken, async (req, res) => {
       .lean();
     
     // Get total count for pagination
-    const total = await RiskMatrixResult.countDocuments(query);
+    const total = await RiskMatrixRisk.countDocuments(query);
     
     res.json({
-      results,
+      risks,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -61,157 +67,127 @@ router.get('/', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching all risk matrix results:', error);
-    res.status(500).json({ error: 'Failed to fetch risk matrix results' });
+    console.error('Error fetching risks:', error);
+    res.status(500).json({ error: 'Failed to fetch risks' });
   }
 });
 
-// Get all risk matrix results for a project (authenticated users)
+// Get all risks for a project (authenticated users)
 router.get('/project/:projectId', authenticateToken, async (req, res) => {
   try {
     const { projectId } = req.params;
     
-    const results = await RiskMatrixResult.find({ 
+    const risks = await RiskMatrixRisk.find({ 
       projectId, 
       isActive: true 
     })
     .populate('createdBy', 'name surname email')
-    .sort({ createdAt: -1 })
+    .sort({ severity: -1, createdAt: -1 })
     .lean();
     
-    res.json(results);
+    res.json(risks);
   } catch (error) {
-    console.error('Error fetching risk matrix results:', error);
-    res.status(500).json({ error: 'Failed to fetch risk matrix results' });
+    console.error('Error fetching risks for project:', error);
+    res.status(500).json({ error: 'Failed to fetch risks for project' });
   }
 });
 
-// Get risk matrix result by ID (authenticated users)
-router.get('/:id', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const result = await RiskMatrixResult.findOne({ 
-      _id: id, 
-      isActive: true 
-    })
-    .populate('createdBy', 'name surname email')
-    .lean();
-    
-    if (!result) {
-      return res.status(404).json({ error: 'Risk matrix result not found' });
-    }
-    
-    res.json(result);
-  } catch (error) {
-    console.error('Error fetching risk matrix result:', error);
-    res.status(500).json({ error: 'Failed to fetch risk matrix result' });
-  }
-});
-
-// Create new risk matrix result (authenticated users)
-router.post('/', authenticateToken, async (req, res) => {
-  try {
-    const { projectId, sessionId, summary, markdownTable, riskData } = req.body;
-    const createdBy = req.user._id;
-    
-    // Check if session already exists
-    const existingResult = await RiskMatrixResult.findOne({ sessionId });
-    if (existingResult) {
-      return res.status(400).json({ error: 'Session already exists' });
-    }
-    
-    const riskMatrixResult = new RiskMatrixResult({
-      projectId,
-      sessionId,
-      summary,
-      markdownTable,
-      riskData: riskData || {},
-      createdBy
-    });
-    
-    const savedResult = await riskMatrixResult.save();
-    
-    // Populate createdBy for response
-    await savedResult.populate('createdBy', 'name surname email');
-    
-    res.status(201).json(savedResult);
-  } catch (error) {
-    console.error('Error creating risk matrix result:', error);
-    res.status(500).json({ error: 'Failed to create risk matrix result' });
-  }
-});
-
-// Update risk matrix result (authenticated users)
-router.put('/:id', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { summary, markdownTable, riskData } = req.body;
-    
-    const updatedResult = await RiskMatrixResult.findByIdAndUpdate(
-      id,
-      {
-        summary,
-        markdownTable,
-        riskData: riskData || {},
-        updatedAt: new Date()
-      },
-      { new: true, runValidators: true }
-    ).populate('createdBy', 'name surname email');
-    
-    if (!updatedResult) {
-      return res.status(404).json({ error: 'Risk matrix result not found' });
-    }
-    
-    res.json(updatedResult);
-  } catch (error) {
-    console.error('Error updating risk matrix result:', error);
-    res.status(500).json({ error: 'Failed to update risk matrix result' });
-  }
-});
-
-// Delete risk matrix result (soft delete) (admin only)
-router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const deletedResult = await RiskMatrixResult.findByIdAndUpdate(
-      id,
-      { isActive: false, updatedAt: new Date() },
-      { new: true }
-    );
-    
-    if (!deletedResult) {
-      return res.status(404).json({ error: 'Risk matrix result not found' });
-    }
-    
-    res.json({ message: 'Risk matrix result deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting risk matrix result:', error);
-    res.status(500).json({ error: 'Failed to delete risk matrix result' });
-  }
-});
-
-// Get risk matrix result by session ID (authenticated users)
+// Get risks by session ID (authenticated users)
 router.get('/session/:sessionId', authenticateToken, async (req, res) => {
   try {
     const { sessionId } = req.params;
     
-    const result = await RiskMatrixResult.findOne({ 
+    const risks = await RiskMatrixRisk.find({ 
       sessionId, 
       isActive: true 
     })
     .populate('createdBy', 'name surname email')
+    .sort({ severity: -1, createdAt: -1 })
     .lean();
     
-    if (!result) {
-      return res.status(404).json({ error: 'Risk matrix result not found' });
+    if (risks.length === 0) {
+      return res.status(404).json({ error: 'Risks not found for this session' });
     }
     
+    // Group risks by assessment
+    const riskAssessmentId = risks[0]?.riskAssessmentId;
+    const groupedRisks = risks.filter(risk => risk.riskAssessmentId === riskAssessmentId);
+    
+    res.json({
+      sessionId,
+      riskAssessmentId,
+      risksCount: groupedRisks.length,
+      risks: groupedRisks
+    });
+  } catch (error) {
+    console.error('Error fetching risks by session:', error);
+    res.status(500).json({ error: 'Failed to fetch risks by session' });
+  }
+});
+
+// Store risks from agent response (authenticated users)
+router.post('/', authenticateToken, async (req, res) => {
+  try {
+    const { projectId, sessionId, parsedRisks } = req.body;
+    const createdBy = req.user._id;
+    
+    if (!parsedRisks || !Array.isArray(parsedRisks) || parsedRisks.length === 0) {
+      return res.status(400).json({ error: 'No risks to store' });
+    }
+    
+    const result = await RiskMatrixService.storeRisks({
+      projectId,
+      sessionId,
+      parsedRisks
+    }, createdBy);
+    
+    res.status(201).json(result);
+  } catch (error) {
+    console.error('Error storing risks:', error);
+    res.status(500).json({ error: 'Failed to store risks' });
+  }
+});
+
+// Update a risk (authenticated users)
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { riskName, riskOwner, severity, justification, mitigation, targetDate } = req.body;
+    
+    const updatedRisk = await RiskMatrixService.updateRisk(id, {
+      riskName,
+      riskOwner,
+      severity,
+      justification,
+      mitigation,
+      targetDate: targetDate ? new Date(targetDate) : null
+    });
+    
+    res.json(updatedRisk);
+  } catch (error) {
+    console.error('Error updating risk:', error);
+    if (error.message === 'Risk not found') {
+      res.status(404).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to update risk' });
+    }
+  }
+});
+
+// Delete a risk (soft delete) (authenticated users)
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await RiskMatrixService.deleteRisk(id);
     res.json(result);
   } catch (error) {
-    console.error('Error fetching risk matrix result by session:', error);
-    res.status(500).json({ error: 'Failed to fetch risk matrix result' });
+    console.error('Error deleting risk:', error);
+    if (error.message === 'Risk not found') {
+      res.status(404).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to delete risk' });
+    }
   }
 });
 
@@ -226,12 +202,12 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
       query.projectId = projectId;
     }
     
-    // Get all risk matrix results
-    const results = await RiskMatrixResult.find(query)
+    // Get all risks
+    const risks = await RiskMatrixRisk.find(query)
       .populate('createdBy', 'name surname email')
       .lean();
     
-    // Analyze risk levels from markdown tables
+    // Analyze risk levels
     const riskLevels = {
       Critical: 0,
       High: 0,
@@ -241,30 +217,20 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
     
     let totalRisks = 0;
     let totalAssessments = 0;
+    const uniqueAssessments = new Set();
     
-    results.forEach(result => {
-      if (result.markdownTable) {
-        totalAssessments++;
-        
-        // Parse markdown table to count risk levels
-        const lines = result.markdownTable.split('\n');
-        lines.forEach(line => {
-          if (line.includes('|') && !line.includes('---')) {
-            const cells = line.split('|').filter(cell => cell.trim());
-            if (cells.length >= 3) {
-              const riskLevel = cells[2]?.trim().toLowerCase();
-              if (riskLevel) {
-                if (riskLevel.includes('critical')) riskLevels.Critical++;
-                else if (riskLevel.includes('high')) riskLevels.High++;
-                else if (riskLevel.includes('medium')) riskLevels.Medium++;
-                else if (riskLevel.includes('low')) riskLevels.Low++;
-                totalRisks++;
-              }
-            }
-          }
-        });
-      }
+    risks.forEach(risk => {
+      totalRisks++;
+      uniqueAssessments.add(risk.riskAssessmentId);
+      
+      // Categorize by severity
+      if (risk.severity >= 5) riskLevels.Critical++;
+      else if (risk.severity >= 4) riskLevels.High++;
+      else if (risk.severity >= 3) riskLevels.Medium++;
+      else riskLevels.Low++;
     });
+    
+    totalAssessments = uniqueAssessments.size;
     
     // Calculate percentages
     const total = Object.values(riskLevels).reduce((sum, count) => sum + count, 0);
@@ -274,18 +240,16 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
     });
     
     // Get recent assessments
-    const recentAssessments = results
+    const recentAssessments = risks
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 5)
-      .map(result => ({
-        id: result._id,
-        sessionId: result.sessionId,
-        summary: result.summary,
-        createdAt: result.createdAt,
-        createdBy: result.createdBy?.name || 'Unknown',
-        riskCount: result.markdownTable ? result.markdownTable.split('\n').filter(line => 
-          line.includes('|') && !line.includes('---') && line.includes('|')
-        ).length - 1 : 0
+      .map(risk => ({
+        id: risk._id,
+        sessionId: risk.sessionId,
+        riskName: risk.riskName,
+        severity: risk.severity,
+        createdAt: risk.createdAt,
+        createdBy: risk.createdBy?.name || 'Unknown'
       }));
     
     res.json({
@@ -295,9 +259,9 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
       totalAssessments,
       recentAssessments,
       summary: {
-        totalAssessments: results.length,
-        completedAssessments: totalAssessments,
-        pendingAssessments: results.length - totalAssessments
+        totalAssessments,
+        totalRisks,
+        averageSeverity: totalRisks > 0 ? (risks.reduce((sum, risk) => sum + risk.severity, 0) / totalRisks).toFixed(1) : 0
       }
     });
   } catch (error) {

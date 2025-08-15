@@ -28,6 +28,7 @@ wheels/
 .venv/
 venv/
 env/
+*.env
 ENV/
 
 # Python environment variables
