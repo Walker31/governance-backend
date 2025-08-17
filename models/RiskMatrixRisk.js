@@ -1,10 +1,14 @@
 import mongoose from 'mongoose';
+import { customAlphabet } from "nanoid";
+
+const nanoid = customAlphabet('0123456789',4);
 
 const riskMatrixRiskSchema = new mongoose.Schema({
   riskAssessmentId: {
     type: String,
     required: true,
-    index: true
+    index: true,
+    default: () => `R-${nanoid()}`
   },
   sessionId: {
     type: String,
@@ -23,7 +27,6 @@ const riskMatrixRiskSchema = new mongoose.Schema({
   riskOwner: {
     type: String,
     required: true,
-    enum: ['Data Engineering Team', 'Security Team', 'Compliance Team']
   },
   severity: {
     type: Number,
@@ -62,7 +65,7 @@ const riskMatrixRiskSchema = new mongoose.Schema({
     default: true
   }
 }, {
-  timestamps: true
+  timestamps: true,collection: 'Risks'
 });
 
 // Indexes for efficient queries

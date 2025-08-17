@@ -5,7 +5,7 @@ const nanoid = customAlphabet('0123456789',4);
 const ProjectSchema = new mongoose.Schema({
     projectId : {
         type:String,
-        requried:true,
+        required:true,
         index:true,
         unique:true,
         default: () => `P-${nanoid()}`
@@ -34,7 +34,7 @@ const ProjectSchema = new mongoose.Schema({
         enum: ['Approved','Completed','Ongoing','Opened']
     },
 }, {
-    timestamps: true
+    timestamps: true, collection: 'Projects'
 });
 
 const Project = mongoose.model('Project',ProjectSchema);

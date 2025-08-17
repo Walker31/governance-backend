@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import connectDB from "./config.js";
-import { requestLogger, errorLogger } from "./middleware/logger.js";
+import { requestLogger } from "./middleware/logger.js";
 import authRouter from "./routes/auth.js";
 import templatesRouter from "./routes/templates.js";
 import templateResponsesRouter from "./routes/templateResponses.js";
@@ -10,6 +10,7 @@ import questionnaireRouter from "./routes/questionnaire.js";
 import projectRouter from './routes/projects.js';
 import elementRouter from './routes/dataElements.js';
 import thirdPartyRouter from './routes/thirdparty.js';
+import controlRouter from './routes/controlAssessment.js';
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use('/questionnaire', questionnaireRouter);
 app.use('/projects', projectRouter);
 app.use('/elements', elementRouter);
 app.use('/thirdparty', thirdPartyRouter);
+app.use('/controls', controlRouter);
 
 // Health check
 app.get('/', (req, res) => {
@@ -41,6 +43,3 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-// Error handling middleware (should be last)
-app.use(errorLogger);

@@ -23,6 +23,25 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/:projectId', authenticateToken, async (req, res) => {
+  try {
+    const ownerId = req.user._id;
+    const { projectId } = req.params;
+
+    const projects = await Project.findOne({ projectId: projectId,owner:ownerId })
+      .populate('owner', 'name'); // Only fetch "name" from User
+
+    if (projects.length === 0) {
+      return res.status(404).json({ error: 'Projects not found for this user' });
+    }
+
+    res.status(200).json(projects);
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+    res.status(500).json({ error: 'Failed to fetch projects' });
+  }
+});
+
 
 // Add a new project
 router.post('/', authenticateToken, async (req, res) => {

@@ -6,8 +6,9 @@ class RiskMatrixService {
    */
   static async storeRisks(data, userId) {
     try {
-      const { projectId, sessionId, parsedRisks } = data;
-      
+      const { projectId, sessionId } = data;
+      let { parsedRisks } = data;
+
       if (!parsedRisks || !Array.isArray(parsedRisks) || parsedRisks.length === 0) {
         throw new Error('No risks to store');
       }
@@ -15,9 +16,9 @@ class RiskMatrixService {
       // Generate risk assessment ID
       const riskAssessmentId = `R-${sessionId.substring(0, 8).toUpperCase()}`;
       
+      parsedRisks = parsedRisks.slice(1);
       // Prepare risks for insertion
       const risksToInsert = parsedRisks.map(risk => ({
-        riskAssessmentId,
         sessionId,
         projectId,
         riskName: risk.risk_name,

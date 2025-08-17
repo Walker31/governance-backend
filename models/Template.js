@@ -64,7 +64,7 @@ const templateSchema = new mongoose.Schema({
     default: true
   }
 }, {
-  timestamps: true
+  timestamps: true,collection: 'Templates'
 });
 
 // Index for better query performance

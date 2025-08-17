@@ -82,6 +82,7 @@ Backend/
    PORT=3000
    MONGODB_URI=mongodb://localhost:27017/?retryWrites=true&w=majority&appName=Governance-AI
    JWT_SECRET=your_jwt_secret_key_here
+   AGENT_URL=http://localhost:8000
    NODE_ENV=development
    ```
 

@@ -51,11 +51,7 @@ router.post('/bulk', authenticateToken, async (req, res) => {
       category,
       elementName,
     }));
-
-    // If you want to skip duplicates, ensure a unique index on (userId, projectId, category, elementName)
-    // and use { ordered: false } to continue on dup errors:
-    // await DataElements.insertMany(docs, { ordered: false });
-
+    
     const inserted = await DataElements.insertMany(docs);
     res.status(201).json({ message: 'All elements saved', count: inserted.length });
   } catch (err) {

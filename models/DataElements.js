@@ -9,7 +9,7 @@ const DataElementSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      default: () => `D-${numericNanoid()}`
+      default: () => `E-${numericNanoid()}`
     },
     elementName: {
       type: String,
@@ -30,7 +30,7 @@ const DataElementSchema = new mongoose.Schema(
       required: true
     }
   },
-  { timestamps: true }
+  { timestamps: true,collection: 'Data Elements' }
 );
 
 

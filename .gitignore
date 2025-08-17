@@ -23,9 +23,6 @@ Thumbs.db
 # Logs
 *.log
 
-# Excel and data files (if not needed in repo)
-*.xlsx
-
 # Saved sessions or runtime data
 Agent-RakFort/saved_sessions/
 Agent-RakFort/*.pyc

@@ -11,8 +11,6 @@ const ControlSchema = new mongoose.Schema({
     code: {
         type:String,
         required:true,
-        index:true,
-        unique:true,
         default:() => `AI-${nanoid()}`
     },
     section: {
@@ -35,7 +33,7 @@ const ControlSchema = new mongoose.Schema({
         type:String,
         required:true,
     },
-},{timestamps:true})
+},{timestamps:true,collection: 'Control Assessments'})
 
 const Control = mongoose.model('ControlAssessment', ControlSchema);
 

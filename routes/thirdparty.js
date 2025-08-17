@@ -4,15 +4,10 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
-/**
- * Create Third Party
- */
 router.post('/', authenticateToken, async (req, res) => {
-  const { name, type, role, industry, url, projectId } = req.body;
+  const { name, type, role, industry, website, description, notes, projectId } = req.body;
 
-  if (!name || !type || !role || !industry || !url || !projectId) {
-    return res.status(400).json({ message: 'Some fields are missing' });
-  }
+  // REMOVED: Redundant validation block. Mongoose handles this.
 
   try {
     const newTP = await ThirdParty.create({
@@ -20,12 +15,17 @@ router.post('/', authenticateToken, async (req, res) => {
       projectId,
       name,
       type,
-      url,
+      website, // CHANGED: from url to website
       industry,
-      role
+      role,
+      description, // ADDED
+      notes,       // ADDED
     });
     res.status(201).json(newTP);
   } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ message: err.message });
+    }
     res.status(500).json({ message: err.message });
   }
 });
@@ -37,7 +37,9 @@ router.get('/:projectId', authenticateToken, async (req, res) => {
   try {
     const thirdParties = await ThirdParty.find({
       projectId: req.params.projectId,
-      userId: req.user._id
+      // NOTE: Scoping to userId is good practice, but a user might need to see all third parties for a project.
+      // If so, you might remove the line below depending on your business logic.
+      userId: req.user._id 
     });
     res.status(200).json(thirdParties);
   } catch (err) {
@@ -51,7 +53,8 @@ router.get('/:projectId', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const updatedTP = await ThirdParty.findOneAndUpdate(
-      { id: req.params.id, userId: req.user._id },
+      // CHANGED: Query by '_id' not 'id'
+      { _id: req.params.id, userId: req.user._id },
       { $set: req.body },
       { new: true, runValidators: true }
     );
@@ -62,6 +65,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     res.status(200).json(updatedTP);
   } catch (err) {
+     if (err.name === 'ValidationError') {
+      return res.status(400).json({ message: err.message });
+    }
     res.status(500).json({ message: err.message });
   }
 });
@@ -72,12 +78,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const deletedTP = await ThirdParty.findOneAndDelete({
-      id: req.params.id,
+      // CHANGED: Query by '_id' not 'id'
+      _id: req.params.id,
       userId: req.user._id
     });
 
     if (!deletedTP) {
-      return res.status(404).json({ message: 'Third Party not found' });
+      return res.status(4e4).json({ message: 'Third Party not found' });
     }
 
     res.status(200).json({ message: 'Third Party deleted successfully' });

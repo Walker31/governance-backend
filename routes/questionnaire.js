@@ -2,13 +2,14 @@ import express from 'express';
 import RiskMatrixRisk from '../models/RiskMatrixRisk.js';
 import Question from '../models/Question.js';
 import RiskMatrixService from '../services/riskMatrixService.js';
+import ControlMatrixService from '../services/controlAssessmentService.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 import { nanoid } from 'nanoid';
+import Project from '../models/Projects.js';
 import axios from 'axios';
 
 const router = express.Router();
 
-// Helper function to generate summary from questionnaire responses
 function generateSummaryFromResponses(responses, useCaseType) {
   const questions = [
     "Name and country",
@@ -22,14 +23,11 @@ function generateSummaryFromResponses(responses, useCaseType) {
     "Affected groups",
     "Project timeline",
     "Potential delays"
-  ];
-  
-  let summary = `AI System Type: ${useCaseType === 'human' ? 'Human-operated' : 'Automated AI Bot'}\n\n`;
-  
+  ]; 
+  let summary = '';
   Object.keys(responses).forEach((questionId, index) => {
     const question = questions[index] || `Question ${questionId}`;
     const response = responses[questionId];
-    
     if (response) {
       if (typeof response === 'object' && response.name && response.country) {
         summary += `${question}: ${response.name} from ${response.country}\n`;
@@ -40,113 +38,90 @@ function generateSummaryFromResponses(responses, useCaseType) {
       }
     }
   });
-  
   return summary;
 }
 
-// Process questionnaire responses and generate risk analysis
 router.post('/process', authenticateToken, async (req, res) => {
   try {
-    const { 
+    const {
       questionnaireResponses,
-      projectId,
-      useCaseType = 'human' // 'human' or 'bot'
+      useCaseType
     } = req.body;
-    
+
     const createdBy = req.user._id;
-    const sessionId = nanoid(); // Generate unique session ID
-    
-    // Validate required fields
+    const sessionId = nanoid();
+
     if (!questionnaireResponses) {
-      return res.status(400).json({ 
-        error: 'Missing required field: questionnaireResponses' 
-      });
+      return res.status(400).json({ error: 'Missing required field: questionnaireResponses' });
     }
-    
-    // Call AI agent to generate risk analysis
+
+    // Convert for agent
+    const summary = generateSummaryFromResponses(questionnaireResponses, useCaseType);
+
+    // Create the project
+    const newProject = new Project({
+      projectName: questionnaireResponses?.purpose?.slice(0, 50) || 'AI Risk Project',
+      workflow: 'defaultWorkflow',
+      template: useCaseType,
+      owner: req.user._id
+    });
+    const savedProject = await newProject.save();
+    const actualProjectId = savedProject.projectId;
+
+    // Call risk-control agent
     const agentUrl = process.env.AGENT_URL || 'http://localhost:8000';
-    
+    let agentResponse;
     try {
-      // Convert questionnaire responses to a summary for the AI agent
-      const summary = generateSummaryFromResponses(questionnaireResponses, useCaseType);
-      
-      // Call the risk matrix agent
-      const agentResponse = await axios.post(`${agentUrl}/agent/risk-matrix`, {
+      agentResponse = await axios.post(`${agentUrl}/agent/risk-control`, {
         summary: summary,
         session_id: sessionId,
-        project_id: projectId || null
-      }, {
-        timeout: 30000 // 30 second timeout
-      });
-      
-      const { parsed_risks } = agentResponse.data;
-      
-      // Store individual risks in database
-      if (parsed_risks && parsed_risks.length > 0) {
-        const result = await RiskMatrixService.storeRisks({
-          projectId,
-          sessionId,
-          parsedRisks
-        }, createdBy);
-        
-        res.status(201).json({
-          message: 'Questionnaire processed successfully',
-          sessionId,
-          riskAssessmentId: result.riskAssessmentId,
-          risksCount: result.risksCount,
-          risks: result.risks
-        });
-      } else {
-        res.status(201).json({
-          message: 'Questionnaire processed successfully (no risks identified)',
-          sessionId,
-          risksCount: 0
-        });
-      }
-      
+        project_id: actualProjectId || null
+      }, { timeout: 30000 });
     } catch (error) {
-      console.error('Error calling AI agent:', error);
-      
-      // Fallback to placeholder risks if agent fails
-      const fallbackRisks = [
-        {
-          risk_name: "AI System Complexity",
-          risk_owner: "Data Engineering Team",
-          severity: 3,
-          justification: "Medium risk due to system complexity",
-          mitigation: "Regular monitoring and testing",
-          target_date: "2024-03-15"
-        },
-        {
-          risk_name: "Regulatory Compliance",
-          risk_owner: "Compliance Team",
-          severity: 2,
-          justification: "Low risk with proper documentation",
-          mitigation: "Documentation updates and training",
-          target_date: "2024-02-28"
-        }
-      ];
-      
-      const result = await RiskMatrixService.storeRisks({
-        projectId,
-        sessionId,
-        parsedRisks: fallbackRisks
-      }, createdBy);
-      
-      res.status(201).json({
-        message: 'Questionnaire processed successfully (fallback mode)',
-        sessionId,
-        riskAssessmentId: result.riskAssessmentId,
-        risksCount: result.risksCount,
-        risks: result.risks
-      });
+      console.error('Error calling risk-control agent:', error);
+      return res.status(500).json({ message: 'Unable to process request from risk-control agent' });
     }
-    
+
+    // --- Store risks and controls ---
+    const { parsed_risks, parsed_controls, risk_matrix, control_matrix, risk_assessment_id } = agentResponse.data;
+
+    let resultRisks = { riskAssessmentId: risk_assessment_id, risksCount: 0, risks: [] };
+    if (parsed_risks && parsed_risks.length > 0) {
+      resultRisks = await RiskMatrixService.storeRisks({
+        projectId: actualProjectId,
+        sessionId,
+        parsedRisks: parsed_risks
+      }, createdBy);
+    }
+
+    let resultControls = { controlsCount: 0, controls: [] };
+    if (parsed_controls && parsed_controls.length > 0) {
+      resultControls = await ControlMatrixService.storeControls({
+        projectId: actualProjectId,
+        sessionId,
+        parsedControls: parsed_controls,
+        riskAssessmentId: risk_assessment_id
+      }, createdBy);
+    }
+
+    // --- Respond ---
+    return res.status(201).json({
+      message: 'Questionnaire processed successfully',
+      sessionId,
+      riskAssessmentId: risk_assessment_id,
+      risksCount: resultRisks.risksCount,
+      risks: resultRisks.risks,
+      controlsCount: resultControls.controlsCount,
+      controls: resultControls.controls,
+      risk_matrix,
+      control_matrix
+    });
   } catch (error) {
     console.error('Error processing questionnaire:', error);
     res.status(500).json({ error: 'Failed to process questionnaire' });
   }
 });
+
 
 // Get questionnaire processing status
 router.get('/status/:sessionId', authenticateToken, async (req, res) => {
