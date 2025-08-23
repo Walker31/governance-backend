@@ -77,38 +77,31 @@ passport.deserializeUser(async (id, done) => {
 });
 
 // Route: Google login entry
-router.get('/auth/google', passport.authenticate('google', {
-  scope: ['profile', 'email'],
-}));
-// Route: Callback handler
+router.get(
+  '/auth/google',
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+  })
+);
+
+// Route: Callback handler (merged and fixed)
 router.get(
   '/auth/google/callback',
   passport.authenticate('google', { failureRedirect: `${FRONTEND_URL}/login` }),
   async (req, res) => {
     try {
-      // ✅ Update lastLogin for this Google-authenticated user
+      // Update lastLogin time for this user
       await User.findByIdAndUpdate(req.user._id, { lastLogin: new Date() });
 
+      // Generate token
       const token = generateToken(req.user._id);
-      // (use your working redirect)
+
+      // Redirect to frontend with token
       res.redirect(`${FRONTEND_URL}/?token=${token}`);
     } catch (err) {
       console.error('Google callback error:', err);
       res.redirect(`${FRONTEND_URL}/login`);
     }
-  }
-);
-
-// Route: Callback handler
-router.get(
-  '/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: `${FRONTEND_URL}/` }),
-  (req, res) => {
-    const token = generateToken(req.user._id);
-
-    // ✅ Redirect to frontend login success handler
-   res.redirect(`${FRONTEND_URL}/?token=${token}`);
-
   }
 );
 

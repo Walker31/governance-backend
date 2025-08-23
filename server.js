@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import googleAuthRoutes from './middleware/googleauth.js';
 import connectDB from "./config.js";
 import { requestLogger } from "./middleware/logger.js";
 import authRouter from "./routes/auth.js";
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use(requestLogger);
 
 // Routes
+app.use('/', googleAuthRoutes);
 app.use('/auth', authRouter);
 app.use('/templates', templatesRouter);
 app.use('/template-responses', templateResponsesRouter);
